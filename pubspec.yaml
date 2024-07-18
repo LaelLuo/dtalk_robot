@@ -1,13 +1,12 @@
 name: dtalk_robot
 description: A starting point for Dart libraries or applications.
-version: 1.0.1
+version: 1.1.1
 
 environment:
   sdk: ^3.4.1
 
 dependencies:
   crypto: ^3.0.1
-  dio: ^5.4.0
 
 dev_dependencies:
   lints: ^4.0.0

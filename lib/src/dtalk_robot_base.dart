@@ -1,7 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
 
 class DTalk {
   final String token;
@@ -11,7 +11,7 @@ class DTalk {
 
   Future<void> sendMessage(String message) => _sendMessage(this, message);
 
-  static final Dio _dio = Dio();
+  static final HttpClient _client = HttpClient();
 
   static Future<void> _sendMessage(DTalk dTalk, String message) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -19,11 +19,17 @@ class DTalk {
     final hmac = Hmac(sha256, dTalk.secret.toUTF8());
     final sign = base64.encode(hmac.convert(stringToSign.toUTF8()).bytes);
     final url = 'https://oapi.dingtalk.com/robot/send?access_token=${dTalk.token}&timestamp=$timestamp&sign=$sign';
-    final response = await _dio.post(url, data: {
+    final request = await _client.postUrl(Uri.parse(url));
+    request.headers.contentType = ContentType.json;
+    request.write(json.encode({
       r'msgtype': 'text',
       r'text': {'content': message}
-    });
-    if (response.data[r'errcode'] != 0) throw Exception('DTalk error => ${response.data[r'errmsg']}');
+    }));
+    final response = await request.close();
+    final data = await response.transform(utf8.decoder).join();
+    if (response.statusCode != 200) throw Exception('DTalk error => $data');
+    final jsonData = json.decode(data);
+    if (jsonData[r'errcode'] != 0) throw Exception('DTalk error => ${jsonData[r'errmsg']}');
   }
 }
 
