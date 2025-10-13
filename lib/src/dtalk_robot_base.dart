@@ -61,20 +61,25 @@ class DTalkAt {
 }
 
 abstract class DTalkMessage {
-  const DTalkMessage({this.at});
+  DTalkMessage({
+    required this.msgType,
+    this.at,
+    this.supportsAt = false,
+  }) {
+    if (at != null && !supportsAt) {
+      throw ArgumentError('$msgType 消息类型不支持@功能');
+    }
+  }
+
+  final String msgType;
 
   final DTalkAt? at;
 
-  String get msgType;
-
-  bool get supportsAt => false;
+  final bool supportsAt;
 
   Map<String, dynamic> buildMessage();
 
   Map<String, dynamic> toRequestBody() {
-    if (at != null && !supportsAt) {
-      throw ArgumentError('$msgType 消息类型不支持@功能');
-    }
     final body = <String, dynamic>{
       r'msgtype': msgType,
       msgType: buildMessage(),
@@ -90,35 +95,27 @@ abstract class DTalkMessage {
 }
 
 class DTalkTextMessage extends DTalkMessage {
-  const DTalkTextMessage({required this.content, super.at});
+  DTalkTextMessage({required this.content, super.at})
+      : super(msgType: 'text', supportsAt: true);
 
   final String content;
-
-  @override
-  String get msgType => 'text';
-
-  @override
-  bool get supportsAt => true;
 
   @override
   Map<String, dynamic> buildMessage() => {r'content': content};
 }
 
 class DTalkLinkMessage extends DTalkMessage {
-  const DTalkLinkMessage({
+  DTalkLinkMessage({
     required this.title,
     required this.text,
     required this.messageUrl,
     this.picUrl,
-  });
+  }) : super(msgType: 'link');
 
   final String title;
   final String text;
   final String messageUrl;
   final String? picUrl;
-
-  @override
-  String get msgType => 'link';
 
   @override
   Map<String, dynamic> buildMessage() {
@@ -135,20 +132,14 @@ class DTalkLinkMessage extends DTalkMessage {
 }
 
 class DTalkMarkdownMessage extends DTalkMessage {
-  const DTalkMarkdownMessage({
+  DTalkMarkdownMessage({
     required this.title,
     required this.text,
     super.at,
-  });
+  }) : super(msgType: 'markdown', supportsAt: true);
 
   final String title;
   final String text;
-
-  @override
-  String get msgType => 'markdown';
-
-  @override
-  bool get supportsAt => true;
 
   @override
   Map<String, dynamic> buildMessage() => {
@@ -181,7 +172,8 @@ class DTalkActionCardMessage extends DTalkMessage {
     this.btnOrientation,
     super.at,
   })  : single = DTalkActionCardSingle(title: singleTitle, url: singleUrl),
-        buttons = null;
+        buttons = null,
+        super(msgType: 'actionCard', supportsAt: true);
 
   DTalkActionCardMessage.multi({
     required this.title,
@@ -190,7 +182,8 @@ class DTalkActionCardMessage extends DTalkMessage {
     this.btnOrientation,
     super.at,
   })  : buttons = List.unmodifiable(buttons),
-        single = null {
+        single = null,
+        super(msgType: 'actionCard', supportsAt: true) {
     if (buttons.isEmpty) {
       throw ArgumentError('actionCard.btns 不能为空');
     }
@@ -201,12 +194,6 @@ class DTalkActionCardMessage extends DTalkMessage {
   final String? btnOrientation;
   final DTalkActionCardSingle? single;
   final List<DTalkActionCardButton>? buttons;
-
-  @override
-  String get msgType => 'actionCard';
-
-  @override
-  bool get supportsAt => true;
 
   @override
   Map<String, dynamic> buildMessage() {
@@ -258,16 +245,14 @@ class DTalkFeedCardLink {
 
 class DTalkFeedCardMessage extends DTalkMessage {
   DTalkFeedCardMessage({required List<DTalkFeedCardLink> links})
-      : links = List.unmodifiable(links) {
+      : links = List.unmodifiable(links),
+        super(msgType: 'feedCard') {
     if (this.links.isEmpty) {
       throw ArgumentError('feedCard.links 不能为空');
     }
   }
 
   final List<DTalkFeedCardLink> links;
-
-  @override
-  String get msgType => 'feedCard';
 
   @override
   Map<String, dynamic> buildMessage() =>
