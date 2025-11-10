@@ -27,6 +27,7 @@ class DTalk {
     request.headers.contentType = ContentType.json;
     request.write(json.encode(message.toRequestBody()));
     final response = await request.close();
+    _client.close();
     final data = await response.transform(utf8.decoder).join();
     if (response.statusCode != 200) throw Exception('DTalk error => $data');
     final jsonData = json.decode(data);
